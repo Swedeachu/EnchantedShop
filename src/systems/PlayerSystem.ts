@@ -1,8 +1,10 @@
 import type { Player } from "@minecraft/server";
 import { GameSystem } from "../core/System";
+import { registerSystem, SystemOrder } from "../core/SystemRegistry";
 import type { SystemManager } from "../core/SystemManager";
 import { Logger } from "../core/Logger";
 import { ComponentContainer } from "../core/components/ComponentContainer";
+import { hydratePlayerComponents } from "../core/components/ComponentRegistry";
 
 /**
  * Per-player runtime state. Currency balance, owned-kit tracking, pending
@@ -31,14 +33,11 @@ export class GamePlayer {
 }
 
 /**
- * First concrete derived system: tracks who is online and demonstrates the
- * join/spawn/leave event hooks every later system (Currency, Kits,
- * Delivery, Shop, ShopMan) subscribes to through the same GameSystem base.
- *
- * Registered first, so its onPlayerSpawn always creates the GamePlayer
- * before any later-registered system's onPlayerSpawn runs (registration
- * order = event-dispatch order - see SystemManager) and can safely assume
- * getGamePlayer() is already populated.
+ * Tracks who is online. Self-registers with SystemOrder.First (see
+ * SystemRegistry.ts) so its onPlayerSpawn always runs before every other
+ * system's - it creates the GamePlayer and hydrates every self-registered
+ * component onto it (see ComponentRegistry.ts) before anything else's
+ * onPlayerSpawn can assume getGamePlayer() is already populated.
  */
 export class PlayerSystem extends GameSystem {
   private readonly logger = new Logger("PlayerSystem");
@@ -62,7 +61,9 @@ export class PlayerSystem extends GameSystem {
       return;
     }
 
-    this.online.set(player.id, new GamePlayer(player));
+    const gamePlayer = new GamePlayer(player);
+    this.online.set(player.id, gamePlayer);
+    hydratePlayerComponents(player, gamePlayer.components);
     this.logger.info(`${player.name} spawned for the first time this session.`);
   }
 
@@ -93,3 +94,7 @@ export class PlayerSystem extends GameSystem {
     return this.online.size;
   }
 }
+
+// Self-registers with SystemManager - see SystemRegistry.ts. First, so
+// every other system can rely on getGamePlayer() already being populated.
+registerSystem((manager) => new PlayerSystem(manager), SystemOrder.First);

@@ -1,5 +1,6 @@
 import type { ItemDefinition } from "../items/ItemFactory";
 import { createComponentKey, type Serializable } from "../core/components/ComponentContainer";
+import { registerPlayerComponent } from "../core/components/ComponentRegistry";
 
 export type PendingDeliverySnapshot = readonly ItemDefinition[];
 
@@ -45,3 +46,12 @@ export class PendingDeliveryComponent implements Serializable<PendingDeliverySna
 }
 
 export const PendingDeliveryComponentKey = createComponentKey<PendingDeliveryComponent>("pendingDelivery");
+export const PENDING_DELIVERY_DYNAMIC_PROPERTY_KEY = "enchantedshop:pendingDelivery";
+
+// Self-registers with PlayerSystem - see ComponentRegistry.ts.
+registerPlayerComponent<PendingDeliveryComponent, PendingDeliverySnapshot>({
+  key: PendingDeliveryComponentKey,
+  dynamicPropertyKey: PENDING_DELIVERY_DYNAMIC_PROPERTY_KEY,
+  defaultSnapshot: [],
+  deserialize: PendingDeliveryComponent.deserialize
+});

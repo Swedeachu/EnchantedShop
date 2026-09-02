@@ -1,5 +1,6 @@
 import { system, type Player } from "@minecraft/server";
 import { Scene } from "../core/scenes/Scene";
+import { registerScene } from "../core/scenes/SceneRegistry";
 import type { SystemManager } from "../core/SystemManager";
 import { Logger } from "../core/Logger";
 import { formatCurrency } from "../shop/ShopFormatting";
@@ -48,3 +49,7 @@ export class LoadingScene extends Scene {
     this.manager.getSceneSystem().setPlayerScene(player, HUB_SCENE_ID);
   }
 }
+
+// Self-registers with SceneSystem (see SceneRegistry.ts) - the scene every
+// player lands in first.
+registerScene((manager) => new LoadingScene(manager), { isDefault: true });

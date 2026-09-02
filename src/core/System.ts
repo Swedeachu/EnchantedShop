@@ -2,12 +2,11 @@ import type { Entity, Player } from "@minecraft/server";
 import type { SystemManager } from "./SystemManager";
 
 /**
- * Base class every derived system (PlayerSystem, SceneSystem, CurrencySystem,
- * KitsSystem, ShopSystem, EntitySystem, DeliverySystem, ...) extends.
- * `SystemManager` owns the single instance of each system and fans
- * world/system events out to every registered one, so subclasses only
- * override the hooks they care about instead of wiring up their own event
- * subscriptions.
+ * Base class every derived system extends. `SystemManager` owns the single
+ * instance of each one (built from self-registration - call registerSystem()
+ * at the bottom of your file, see SystemRegistry.ts) and fans world/system
+ * events out to all of them, so subclasses only override the hooks they
+ * actually care about instead of wiring up their own event subscriptions.
  */
 export abstract class GameSystem {
   protected readonly manager: SystemManager;

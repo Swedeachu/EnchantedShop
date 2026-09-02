@@ -1,6 +1,11 @@
 import type { Player } from "@minecraft/server";
 import type { SystemManager } from "../SystemManager";
 
+/**
+ * Base class every scene extends. SceneSystem owns the single shared
+ * instance of each one, built from self-registration - call registerScene()
+ * at the bottom of your file (see SceneRegistry.ts).
+ */
 export abstract class Scene {
   public readonly id: string;
   protected readonly manager: SystemManager;

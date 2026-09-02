@@ -1,5 +1,6 @@
 import { world } from "@minecraft/server";
 import { GameSystem } from "../core/System";
+import { registerSystem } from "../core/SystemRegistry";
 import type { SystemManager } from "../core/SystemManager";
 import { Logger } from "../core/Logger";
 import { GameConfig } from "../config/GameConfig";
@@ -158,3 +159,6 @@ export class ShopSystem extends GameSystem {
     writeJson(world, DYNAMIC_PROPERTY_KEY, this.state);
   }
 }
+
+// Self-registers with SystemManager - see SystemRegistry.ts.
+registerSystem((manager) => new ShopSystem(manager));

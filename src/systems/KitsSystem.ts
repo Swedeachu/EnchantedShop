@@ -1,16 +1,20 @@
-import type { Player } from "@minecraft/server";
 import { GameSystem } from "../core/System";
+import { registerSystem } from "../core/SystemRegistry";
 import type { SystemManager } from "../core/SystemManager";
 import { Logger } from "../core/Logger";
-import { readJson, writeJson } from "../core/persistence/DynamicPropertyCodec";
+import { writeJson } from "../core/persistence/DynamicPropertyCodec";
 import { KITS_CONFIG } from "../kits/KitsConfig";
 import { KitCategory, type KitDefinition } from "../kits/KitTypes";
-import { OwnedKitsComponent, OwnedKitsComponentKey, type OwnedKitsSnapshot } from "../kits/OwnedKitsComponent";
+import { OwnedKitsComponentKey, OWNED_KITS_DYNAMIC_PROPERTY_KEY } from "../kits/OwnedKitsComponent";
+import type { Player } from "@minecraft/server";
 import type { PlayerSystem } from "./PlayerSystem";
 
-const DYNAMIC_PROPERTY_KEY = "enchantedshop:ownedKits";
-
-/** Loads KITS_CONFIG into a category-indexed registry, and tracks purchase history per player. */
+/**
+ * Loads KITS_CONFIG into a category-indexed registry, and tracks purchase
+ * history per player. Hydrating that history itself is generic - see
+ * OwnedKitsComponent.ts's self-registration and PlayerSystem's
+ * onPlayerSpawn - this system just reads/writes OwnedKitsComponentKey.
+ */
 export class KitsSystem extends GameSystem {
   private readonly logger = new Logger("KitsSystem");
   private readonly playerSystem: PlayerSystem;
@@ -48,19 +52,6 @@ export class KitsSystem extends GameSystem {
     return this.byCategory.get(category) ?? [];
   }
 
-  public override onPlayerSpawn(player: Player, initialSpawn: boolean): void {
-    if (!initialSpawn) {
-      return;
-    }
-    const gamePlayer = this.playerSystem.getGamePlayer(player.id);
-    if (!gamePlayer) {
-      return;
-    }
-
-    const snapshot = readJson<OwnedKitsSnapshot>(player, DYNAMIC_PROPERTY_KEY, {});
-    gamePlayer.components.set(OwnedKitsComponentKey, OwnedKitsComponent.deserialize(snapshot));
-  }
-
   public getOwnedCount(playerId: string, kitId: string): number {
     return this.playerSystem.getGamePlayer(playerId)?.components.get(OwnedKitsComponentKey)?.getCount(kitId) ?? 0;
   }
@@ -77,6 +68,9 @@ export class KitsSystem extends GameSystem {
       return;
     }
     component.recordPurchase(kitId, quantity);
-    writeJson(player, DYNAMIC_PROPERTY_KEY, component.serialize());
+    writeJson(player, OWNED_KITS_DYNAMIC_PROPERTY_KEY, component.serialize());
   }
 }
+
+// Self-registers with SystemManager - see SystemRegistry.ts.
+registerSystem((manager) => new KitsSystem(manager, manager.getPlayerSystem()));

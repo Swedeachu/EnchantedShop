@@ -1,14 +1,17 @@
 import { EntityComponentTypes, type Container, type EntityInventoryComponent, type Player } from "@minecraft/server";
 import { GameSystem } from "../core/System";
+import { registerSystem } from "../core/SystemRegistry";
 import type { SystemManager } from "../core/SystemManager";
 import { Logger } from "../core/Logger";
 import { GameConfig } from "../config/GameConfig";
-import { readJson, writeJson } from "../core/persistence/DynamicPropertyCodec";
+import { writeJson } from "../core/persistence/DynamicPropertyCodec";
 import { createItemStacks, itemStackToDefinition, type ItemDefinition } from "../items/ItemFactory";
-import { PendingDeliveryComponent, PendingDeliveryComponentKey, type PendingDeliverySnapshot } from "../economy/PendingDeliveryComponent";
+import {
+  PendingDeliveryComponent,
+  PendingDeliveryComponentKey,
+  PENDING_DELIVERY_DYNAMIC_PROPERTY_KEY
+} from "../economy/PendingDeliveryComponent";
 import type { PlayerSystem } from "./PlayerSystem";
-
-const DYNAMIC_PROPERTY_KEY = "enchantedshop:pendingDelivery";
 
 export interface DeliveryOutcome {
   readonly queuedStackCount: number;
@@ -47,16 +50,11 @@ export class DeliverySystem extends GameSystem {
     if (!initialSpawn) {
       return;
     }
-    const gamePlayer = this.playerSystem.getGamePlayer(player.id);
-    if (!gamePlayer) {
-      return;
-    }
-
-    const snapshot = readJson<PendingDeliverySnapshot>(player, DYNAMIC_PROPERTY_KEY, []);
-    const component = PendingDeliveryComponent.deserialize(snapshot);
-    gamePlayer.components.set(PendingDeliveryComponentKey, component);
-
-    if (!component.isEmpty()) {
+    // Already hydrated generically by PlayerSystem (see ComponentRegistry.ts
+    // and PendingDeliveryComponent.ts's self-registration) - this just picks
+    // up anything that was left queued from a previous session.
+    const component = this.playerSystem.getGamePlayer(player.id)?.components.get(PendingDeliveryComponentKey);
+    if (component && !component.isEmpty()) {
       this.pendingPlayerIds.add(player.id);
       this.retry(player, component);
     }
@@ -163,6 +161,9 @@ export class DeliverySystem extends GameSystem {
   }
 
   private persist(player: Player, component: PendingDeliveryComponent): void {
-    writeJson(player, DYNAMIC_PROPERTY_KEY, component.serialize());
+    writeJson(player, PENDING_DELIVERY_DYNAMIC_PROPERTY_KEY, component.serialize());
   }
 }
+
+// Self-registers with SystemManager - see SystemRegistry.ts.
+registerSystem((manager) => new DeliverySystem(manager, manager.getPlayerSystem()));

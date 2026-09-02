@@ -1,17 +1,20 @@
 import type { Player } from "@minecraft/server";
 import { GameSystem } from "../System";
+import { registerSystem, SystemOrder } from "../SystemRegistry";
 import type { SystemManager } from "../SystemManager";
 import { Logger } from "../Logger";
 import type { Scene } from "./Scene";
+import { getRegisteredSceneFactories } from "./SceneRegistry";
 
 /**
  * Registry + per-player switchboard for Scenes. Each Scene subclass has
- * exactly one shared instance (see Scene.ts) - this class only tracks
- * *which* shared instance each player is currently assigned to, so any
- * number of players can share the same scene at once. `onInit()` calls
- * every registered scene's `init()` once; the scene marked "default" via
- * `setDefaultSceneId()` is where every player lands on first spawn, free
- * to move themselves elsewhere from there (e.g. LoadingScene -> HubScene).
+ * exactly one shared instance - built here from every self-registered
+ * scene factory (see SceneRegistry.ts), the same way SystemManager builds
+ * systems - so this class only tracks *which* shared instance each player
+ * is currently assigned to, and any number of players can share one scene
+ * at once. `onInit()` calls every scene's `init()` once; the scene marked
+ * "default" is where every player lands on first spawn, free to move
+ * themselves elsewhere from there (e.g. LoadingScene -> HubScene).
  */
 export class SceneSystem extends GameSystem {
   private readonly logger = new Logger("SceneSystem");
@@ -21,6 +24,13 @@ export class SceneSystem extends GameSystem {
 
   public constructor(manager: SystemManager) {
     super(manager);
+    for (const { factory, isDefault } of getRegisteredSceneFactories()) {
+      const scene = factory(manager);
+      this.registerScene(scene);
+      if (isDefault) {
+        this.setDefaultSceneId(scene.id);
+      }
+    }
   }
 
   public onInit(): void {
@@ -105,3 +115,7 @@ export class SceneSystem extends GameSystem {
     }
   }
 }
+
+// Self-registers with SystemManager (see SystemRegistry.ts) - last, so its
+// onPlayerSpawn runs after every other system's has hydrated player data.
+registerSystem((manager) => new SceneSystem(manager), SystemOrder.Last);

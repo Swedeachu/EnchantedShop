@@ -1,6 +1,7 @@
 import { world, system, type Entity, type Player } from "@minecraft/server";
 import { Logger } from "./Logger";
 import { GameSystem } from "./System";
+import { getRegisteredSystemFactories } from "./SystemRegistry";
 import { SceneSystem } from "./scenes/SceneSystem";
 import { EntitySystem } from "./entities/EntitySystem";
 import { PlayerSystem } from "../systems/PlayerSystem";
@@ -8,20 +9,29 @@ import { CurrencySystem } from "../systems/CurrencySystem";
 import { KitsSystem } from "../systems/KitsSystem";
 import { DeliverySystem } from "../systems/DeliverySystem";
 import { ShopSystem } from "../systems/ShopSystem";
-import { LoadingScene, LOADING_SCENE_ID } from "../scenes/LoadingScene";
-import { HubScene } from "../scenes/HubScene";
+// Side-effect only: guarantees esbuild bundles every gameplay system/scene
+// file so its self-registration (registerSystem()/registerScene(), at the
+// bottom of each file) actually runs - see src/systems/index.ts and
+// src/scenes/index.ts. The named imports above already do this for
+// core-provided systems (EntitySystem, SceneSystem) and for any gameplay
+// system with a typed getter below; these two lines are the safety net
+// for anything that isn't otherwise imported by name.
+import "../systems";
+import "../scenes";
 
 const TICKS_PER_SECOND = 20;
 
 /**
- * The single root of the system graph: construct every system once, in a
- * fixed order, `init()` them together, and fan every subscribed event out
- * to all of them so each system only has to implement the hooks it
- * actually cares about.
+ * The single root of the system graph. Systems self-register (see
+ * SystemRegistry.ts) instead of being constructed here by hand - this
+ * class just builds whatever's registered, in the order each one asked
+ * for, then fans every subscribed event out to all of them so each system
+ * only has to implement the hooks it actually cares about.
  *
- * Add a new system by constructing it in the constructor (in the order it
- * should initialize/receive events) and exposing a typed getter, the same
- * way `getPlayerSystem()`/`getSceneSystem()` do below.
+ * Adding a new system needs nothing here: write the file, call
+ * registerSystem() at its bottom, and (only if other code needs to fetch
+ * it by name) add a one-line typed getter below, the same way
+ * getPlayerSystem() does.
  */
 export class SystemManager {
   private static instance: SystemManager | undefined;
@@ -32,36 +42,10 @@ export class SystemManager {
   private tickRunId: number | undefined;
   private initialized = false;
 
-  private readonly playerSystem: PlayerSystem;
-  private readonly currencySystem: CurrencySystem;
-  private readonly kitsSystem: KitsSystem;
-  private readonly deliverySystem: DeliverySystem;
-  private readonly shopSystem: ShopSystem;
-  private readonly entitySystem: EntitySystem;
-  private readonly sceneSystem: SceneSystem;
-
   private constructor() {
-    // Registration order = init order = event-dispatch order. PlayerSystem
-    // goes first (everything else reads getGamePlayer() from it), SceneSystem
-    // goes last (its onPlayerSpawn is what places a joining player into
-    // LoadingScene, which should only happen once every system above has
-    // already hydrated that player's data).
-    this.playerSystem = this.register(new PlayerSystem(this));
-    this.currencySystem = this.register(new CurrencySystem(this, this.playerSystem));
-    this.kitsSystem = this.register(new KitsSystem(this, this.playerSystem));
-    this.deliverySystem = this.register(new DeliverySystem(this, this.playerSystem));
-    this.shopSystem = this.register(new ShopSystem(this));
-    this.entitySystem = this.register(new EntitySystem(this));
-    this.sceneSystem = this.register(new SceneSystem(this));
-
-    // Scenes own the gameplay content that lives in them (e.g. HubScene
-    // owns Mister ShopMan) - SystemManager only registers the scenes
-    // themselves, generically, the same way it registers systems above.
-    // Later on maybe with reflection or some static factory pattern the 
-    // derived scene files themselves can defer their registration automatically.
-    this.sceneSystem.registerScene(new LoadingScene(this));
-    this.sceneSystem.registerScene(new HubScene(this));
-    this.sceneSystem.setDefaultSceneId(LOADING_SCENE_ID);
+    for (const factory of getRegisteredSystemFactories()) {
+      this.register(factory(this));
+    }
   }
 
   public static get(): SystemManager {
@@ -71,32 +55,43 @@ export class SystemManager {
     return SystemManager.instance;
   }
 
+  /** Finds the one instance of a registered system by its class - a cheap linear scan, fine for a handful of systems. */
+  public getSystem<T extends GameSystem>(ctor: abstract new (...args: any[]) => T): T {
+    const found = this.systems.find((candidate): candidate is T => candidate instanceof ctor);
+    if (!found) {
+      throw new Error(
+        `System "${ctor.name}" isn't registered - check it calls registerSystem() at the bottom of its file, and that the file is reachable from SystemManager (directly, or via src/systems/index.ts).`
+      );
+    }
+    return found;
+  }
+
   public getSceneSystem(): SceneSystem {
-    return this.sceneSystem;
+    return this.getSystem(SceneSystem);
   }
 
   public getPlayerSystem(): PlayerSystem {
-    return this.playerSystem;
+    return this.getSystem(PlayerSystem);
   }
 
   public getCurrencySystem(): CurrencySystem {
-    return this.currencySystem;
+    return this.getSystem(CurrencySystem);
   }
 
   public getKitsSystem(): KitsSystem {
-    return this.kitsSystem;
+    return this.getSystem(KitsSystem);
   }
 
   public getDeliverySystem(): DeliverySystem {
-    return this.deliverySystem;
+    return this.getSystem(DeliverySystem);
   }
 
   public getShopSystem(): ShopSystem {
-    return this.shopSystem;
+    return this.getSystem(ShopSystem);
   }
 
   public getEntitySystem(): EntitySystem {
-    return this.entitySystem;
+    return this.getSystem(EntitySystem);
   }
 
   private register<T extends GameSystem>(gameSystem: T): T {

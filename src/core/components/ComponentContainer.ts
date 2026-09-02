@@ -3,7 +3,8 @@
  * lite") pattern used for per-player state: currency balance, owned kits,
  * cooldowns, etc. Each component is registered under a unique symbol key
  * that carries its value's type, so `get`/`set`/`require` stay type-safe
- * without a central switch statement.
+ * without a central switch statement. A GamePlayer's own container gets
+ * populated automatically by self-registration - see ComponentRegistry.ts.
  *
  * Usage:
  *   const CurrencyKey = createComponentKey<CurrencyComponent>("currency");

@@ -1,4 +1,6 @@
 import { createComponentKey, type Serializable } from "../core/components/ComponentContainer";
+import { registerPlayerComponent } from "../core/components/ComponentRegistry";
+import { GameConfig } from "../config/GameConfig";
 
 export class CurrencyComponent implements Serializable<number> {
   private balance: number;
@@ -44,3 +46,13 @@ export class CurrencyComponent implements Serializable<number> {
 }
 
 export const CurrencyComponentKey = createComponentKey<CurrencyComponent>("currency");
+export const CURRENCY_DYNAMIC_PROPERTY_KEY = "enchantedshop:currency";
+
+// Self-registers with PlayerSystem (see ComponentRegistry.ts) 
+// - no System has to read/deserialize/persist this component by hand.
+registerPlayerComponent<CurrencyComponent, number>({
+  key: CurrencyComponentKey,
+  dynamicPropertyKey: CURRENCY_DYNAMIC_PROPERTY_KEY,
+  defaultSnapshot: GameConfig.currency.startingBalance,
+  deserialize: CurrencyComponent.deserialize
+});

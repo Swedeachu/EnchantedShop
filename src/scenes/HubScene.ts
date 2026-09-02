@@ -1,5 +1,6 @@
 import { world, DisplaySlotId, type Player, type ScoreboardObjective } from "@minecraft/server";
 import { Scene } from "../core/scenes/Scene";
+import { registerScene } from "../core/scenes/SceneRegistry";
 import type { SystemManager } from "../core/SystemManager";
 import { Logger } from "../core/Logger";
 import { GameConfig } from "../config/GameConfig";
@@ -90,3 +91,6 @@ export class HubScene extends Scene {
     return objective;
   }
 }
+
+// Self-registers with SceneSystem - see SceneRegistry.ts.
+registerScene((manager) => new HubScene(manager));

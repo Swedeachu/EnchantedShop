@@ -1,4 +1,5 @@
 import { createComponentKey, type Serializable } from "../core/components/ComponentContainer";
+import { registerPlayerComponent } from "../core/components/ComponentRegistry";
 
 export type OwnedKitsSnapshot = Readonly<Record<string, number>>;
 
@@ -42,3 +43,12 @@ export class OwnedKitsComponent implements Serializable<OwnedKitsSnapshot> {
 }
 
 export const OwnedKitsComponentKey = createComponentKey<OwnedKitsComponent>("ownedKits");
+export const OWNED_KITS_DYNAMIC_PROPERTY_KEY = "enchantedshop:ownedKits";
+
+// Self-registers with PlayerSystem - see ComponentRegistry.ts.
+registerPlayerComponent<OwnedKitsComponent, OwnedKitsSnapshot>({
+  key: OwnedKitsComponentKey,
+  dynamicPropertyKey: OWNED_KITS_DYNAMIC_PROPERTY_KEY,
+  defaultSnapshot: {},
+  deserialize: OwnedKitsComponent.deserialize
+});

@@ -1,5 +1,6 @@
 import { system, world, type Entity, type Player } from "@minecraft/server";
 import { GameSystem } from "../System";
+import { registerSystem } from "../SystemRegistry";
 import type { SystemManager } from "../SystemManager";
 import { Logger } from "../Logger";
 import { retryOnUnloadedChunk } from "../util/ChunkRetry";
@@ -159,3 +160,6 @@ export class EntitySystem extends GameSystem {
     );
   }
 }
+
+// Self-registers with SystemManager - see SystemRegistry.ts.
+registerSystem((manager) => new EntitySystem(manager));
