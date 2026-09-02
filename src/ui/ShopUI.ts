@@ -210,11 +210,6 @@ async function openQuantitySliderMenu(
     .label(new ObservableString(purchase.contentsLines.length > 0 ? purchase.contentsLines.join("\n") : ""))
     .slider("Quantity", quantity, 1, maxQuantity, { step: 1 })
     .label(quantityLabel)
-    // Plain, uncoded labels on purpose: CustomForm buttons render as flat
-    // system UI (see Microsoft's own CustomForm reference/examples) and
-    // don't respect section-sign color codes the way ActionFormData's do -
-    // a code left in just prints literally ("§2Purchase") instead of
-    // coloring the text.
     .button("Purchase", () => {
       confirmed = true;
       form.close();

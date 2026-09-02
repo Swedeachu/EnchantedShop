@@ -71,20 +71,13 @@ export class PlayerSystem extends GameSystem {
     this.logger.info(`${playerName} disconnected.`);
   }
 
-  /**
-   * Hunger is disabled server-wide: there's no gamerule for this (Bedrock,
-   * like Java, only has gamerules around regen/damage-from-hunger, not
-   * depletion itself), so instead every online player's hunger attribute
-   * gets topped back up to max once a second - cheap, and frequent enough
-   * that the hunger bar never visibly drops even under sprint/jump
-   * exhaustion.
-   */
   public override onSecond(): void {
     for (const gamePlayer of this.online.values()) {
       if (!gamePlayer.player.isValid) {
         continue;
       }
-      gamePlayer.player.getComponent("minecraft:player.hunger")?.resetToMaxValue(); // hack for no hunger, saturation effect would be better, BDS should make hunger a gamerule
+      // hack for no hunger, saturation effect would be better, BDS should make hunger a gamerule
+      gamePlayer.player.getComponent("minecraft:player.hunger")?.resetToMaxValue(); 
     }
   }
 

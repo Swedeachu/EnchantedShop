@@ -22,6 +22,7 @@ const DRIFT_EPSILON_SQUARED = 0.0004; // ~0.02 blocks
  *  - A hard teleport-back-to-home check every tick catches anything that
  *    still nudges it a hair (e.g. physics on the exact tick a hit lands),
  *    so it never visibly drifts even for a moment.
+ *  There has GOT to be a less hacky way to do this without fighting Minecraft.
  */
 export function stationaryBehavior(home: Vector3): NpcBehavior {
   const applyEffects = (npc: SpawnedNpc): void => {

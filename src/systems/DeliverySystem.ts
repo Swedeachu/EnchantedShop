@@ -16,17 +16,9 @@ export interface DeliveryOutcome {
 
 /**
  * The single place items ever enter a player's inventory. Guarantees the
- * "never dropped on the ground" rule from the spec: whatever doesn't fit is
+ * "never dropped on the ground" rule: whatever doesn't fit is
  * queued on the player and retried whenever they have space, instead of
  * spilling onto the ground where it could be stolen.
- *
- * Persistence is the exact same pattern as CurrencySystem: the queue lives
- * in one per-player dynamic property (see DynamicPropertyCodec's
- * readJson/writeJson), written immediately on every mutation (deliver(),
- * retry()) rather than only on some periodic timer. That means a queued
- * delivery survives the server going down between the purchase and the
- * next retry exactly like a currency balance does - there's no in-memory-only
- * window where a restart could lose it.
  *
  * The retry loop itself runs off onTick (every GameConfig.delivery.retryIntervalTicks
  * ticks, decoupled from CurrencySystem's much slower autosaveIntervalSeconds -
@@ -110,17 +102,6 @@ export class DeliverySystem extends GameSystem {
    * Delivers every definition straight into `player`'s inventory. Anything
    * that doesn't fit is queued (persisted immediately) instead of being
    * dropped on the ground.
-   *
-   * Stacking onto the player's existing items is handled by the engine,
-   * not reinvented here: `Container.addItem`'s own documented behavior is
-   * "the item is placed in the first available slot(s) and can be stacked
-   * with existing items of the same type" - confirmed against Microsoft's
-   * Script API reference - so e.g. buying 3x arrows when the player
-   * already has 40 in a stack merges onto that stack (up to its max size)
-   * before ever touching an empty slot. That only works because
-   * ItemFactory.createItemStacks applies the *same* enchantments/nameTag/
-   * lore to every stack built from one definition - ItemStack.isStackableWith
-   * compares those, so two stacks only merge if they actually match.
    */
   public deliver(player: Player, definitions: readonly ItemDefinition[]): DeliveryOutcome {
     const component = this.playerSystem.getGamePlayer(player.id)?.components.get(PendingDeliveryComponentKey);

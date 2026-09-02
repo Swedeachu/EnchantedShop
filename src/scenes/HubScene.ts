@@ -9,18 +9,8 @@ import { lockTimeAtNoon } from "../world/WorldSettings";
 export const HUB_SCENE_ID = "hub";
 
 /**
- * The PvP lobby itself - a single shared instance, not one per player (see
- * Scene.ts's doc comment): every player LoadingScene hands off lands in
- * this same in-memory Hub, at the same time as everyone else currently
- * there, seeing the same Mister ShopMan, the same scoreboard objective,
- * the same flat platform. `init()` runs once, after the world has loaded
- * (see SceneSystem.onInit): it carves out the flat spawn platform, points
- * the world's default spawn at it, and sets up the currency scoreboard.
- * Mister ShopMan himself is spawned/maintained independently by
- * EntitySystem - see ShopManNpc.ts - so this scene doesn't need to know he
- * exists. The only thing that varies per player here is each player's own
- * data (currency balance, in `onPlayerEnter`'s scoreboard refresh) - never
- * anything about the Hub itself.
+ * The PvP lobby itself - a single shared instance the players exist in.
+ * Mister Shopman is spawned in here on init()
  */
 export class HubScene extends Scene {
   private readonly logger = new Logger("HubScene");

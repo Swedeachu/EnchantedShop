@@ -63,7 +63,7 @@ export class SystemManager {
     // NPCs are just data + behaviors handed to EntitySystem - see
     // src/entities/ShopManNpc.ts. Registered here (not inside EntitySystem
     // itself) so adding a new NPC never means touching EntitySystem.
-    this.entitySystem.registerNpc(createShopManNpc(this));
+    this.entitySystem.registerNpc(createShopManNpc(this)); // TODO: move this to be created inside Hub scene init
 
     const loadingScene = new LoadingScene(this);
     const hubScene = new HubScene(this);
