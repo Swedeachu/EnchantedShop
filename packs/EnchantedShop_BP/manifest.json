@@ -1,0 +1,56 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "Enchanted Shop",
+        "description": "PvP lobby shop system - Mister ShopMan, static & rotating stock shops, kits.",
+        "uuid": "bb0652f8-5cef-4f2a-aad0-85f9cb016586",
+        "version": [
+            1,
+            0,
+            0
+        ],
+        "min_engine_version": [
+            1,
+            26,
+            40
+        ]
+    },
+    "modules": [
+        {
+            "type": "data",
+            "uuid": "bb07466f-4b45-4a32-8c58-48be313309bb",
+            "version": [
+                1,
+                0,
+                0
+            ]
+        },
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "151d380f-f258-4497-909c-edc15ec77a64",
+            "version": [
+                1,
+                0,
+                0
+            ],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.9.0"
+        },
+        {
+            "module_name": "@minecraft/server-ui",
+            "version": "2.1.0"
+        }
+    ],
+    "metadata": {
+        "authors": [
+            "Swim"
+        ],
+        "product_type": "addon"
+    }
+}

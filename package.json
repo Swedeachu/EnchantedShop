@@ -1,0 +1,23 @@
+{
+  "name": "enchanted-shop-test",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PvP lobby shop system for Minecraft Bedrock Dedicated Server (Script API + TypeScript).",
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch",
+    "build:production": "node build.mjs --production",
+    "typecheck": "tsc --noEmit",
+    "prepare-server": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/prepare-server.ps1",
+    "start:server": "start.bat"
+  },
+  "dependencies": {
+    "@minecraft/server": "2.9.0",
+    "@minecraft/server-ui": "2.1.0",
+    "@minecraft/vanilla-data": "1.26.44"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.3"
+  }
+}

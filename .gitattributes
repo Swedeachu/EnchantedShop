@@ -1,0 +1,14 @@
+# Keep line endings consistent regardless of which OS clones/commits -
+# this repo mixes Windows batch/PowerShell (CRLF-native) with TypeScript
+# and Markdown (LF-native); without this, a Windows git checkout can
+# silently flip LF files to CRLF and make every line of a future diff
+# look changed.
+* text=auto eol=lf
+
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+*.png binary
+*.jpg binary
+*.jar binary
+*.zip binary
