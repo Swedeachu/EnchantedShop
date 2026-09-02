@@ -14,15 +14,10 @@ const RESISTANCE_AMPLIFIER = 5;
 const DRIFT_EPSILON_SQUARED = 0.0004; // ~0.02 blocks
 
 /**
- * Makes an NPC into a stationary "ghost": permanently anchored to `home`
- * and immune to knockback/damage, so punching or crowding it never moves
- * it. Two layers, since neither alone is airtight:
- *  - Slowness + Resistance stop it from walking on its own and stop
- *    combat damage/knockback from registering in the first place.
- *  - A hard teleport-back-to-home check every tick catches anything that
- *    still nudges it a hair (e.g. physics on the exact tick a hit lands),
- *    so it never visibly drifts even for a moment.
- *  There has GOT to be a less hacky way to do this without fighting Minecraft.
+ * Makes an NPC into a stationary "ghost" permanently anchored to `home`.
+ * Two layers: Slowness + Resistance stop it walking/reacting to hits on
+ * its own, and a hard teleport-back check every tick catches anything
+ * that still nudges it a hair so it never visibly drifts.
  */
 export function stationaryBehavior(home: Vector3): NpcBehavior {
   const applyEffects = (npc: SpawnedNpc): void => {

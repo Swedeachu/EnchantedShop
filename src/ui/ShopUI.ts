@@ -132,11 +132,22 @@ async function openEntryListMenu(
   await openPurchaseMenu(player, ctx, kind, chosen.entry);
 }
 
+/**
+ * The real max the player can buy right now - never an arbitrary ceiling
+ * like 64. Bounded only by what they can actually afford and (for the
+ * rotating shop) remaining stock. entry.price is always > 0 in every
+ * configured entry today; if a free entry is ever added, affordableCap
+ * becomes Infinity and stockCap is what caps it - a free, unlimited-stock
+ * entry (both infinite) isn't representable on a slider, so that
+ * combination returns 0 rather than crashing CustomForm with an
+ * infinite max.
+ */
 function computeMaxQuantity(ctx: ShopUIContext, playerId: string, kind: ShopKind, entry: ShopEntry): number {
   const balance = ctx.currencySystem.getBalance(playerId);
   const stockCap = kind === ShopKind.Rotating ? (ctx.shopSystem.getRemainingStock(entry.id) ?? 0) : Number.POSITIVE_INFINITY;
-  const affordableCap = entry.price > 0 ? Math.floor(balance / entry.price) : 64;
-  return Math.max(0, Math.min(affordableCap, stockCap, 64));
+  const affordableCap = entry.price > 0 ? Math.floor(balance / entry.price) : Number.POSITIVE_INFINITY;
+  const cap = Math.min(affordableCap, stockCap);
+  return Number.isFinite(cap) ? Math.max(0, cap) : 0;
 }
 
 /** Everything the purchase screens need about the entry, computed once up front. */

@@ -2,19 +2,13 @@ import { system, LocationInUnloadedChunkError } from "@minecraft/server";
 import type { Logger } from "../Logger";
 
 /**
- * Right after `world.afterEvents.worldLoad` fires - which is when we bring
- * every system online (see SystemManager.init()) - the chunk(s) around
- * world spawn are not guaranteed to be loaded/ticking yet, especially on a
- * brand-new world with no players around to force them. Any script call
- * that touches a specific location there (spawnEntity, fillBlocks, ...)
- * can throw `LocationInUnloadedChunkError` in that narrow window.
- *
- * This retries `action` on a short timer until it stops throwing that
- * specific error, giving the world a moment to catch up, instead of
- * letting the error propagate and abort whatever init pass called us -
- * which is what silently killed the rest of startup before this existed
- * (see EntitySystem.ensureSpawned / SpawnPlatform.ensureHubPlatformBuilt).
- * Any other kind of error is not retried - it's rethrown immediately.
+ * Right after world load, chunks around spawn aren't guaranteed to be
+ * loaded/ticking yet - a script call that touches a specific location
+ * there (spawnEntity, fillBlocks, ...) can throw
+ * `LocationInUnloadedChunkError` in that narrow window. This retries
+ * `action` on a short timer until that specific error stops, instead of
+ * letting it propagate and abort whatever init pass called us. Any other
+ * error is rethrown immediately, not retried.
  */
 export function retryOnUnloadedChunk(
   action: () => void,

@@ -9,8 +9,11 @@ import { openShopOnInteractOrHit } from "./behaviors/OpenShopBehavior";
 export const SHOPMAN_NPC_ID = "shopman";
 
 /**
- * Mister ShopMan spawns as a plain `minecraft:villager_v2` - guaranteed to
- * render correctly, no custom entity involved.
+ * Mister ShopMan's definition: a plain `minecraft:villager_v2` (guaranteed
+ * to render correctly, no custom entity involved), permanently stationary,
+ * forced into the cartographer look for visuals, and wired to open the
+ * shop UI. Built here but registered by HubScene (his home), not by
+ * SystemManager - see HubScene.init().
  */
 export function createShopManNpc(manager: SystemManager): NpcDefinition {
   const { dimensionId, spawnLocation, nameTag, tag } = GameConfig.shopMan;
@@ -25,15 +28,8 @@ export function createShopManNpc(manager: SystemManager): NpcDefinition {
     invincible: true,
     behaviors: [
       stationaryBehavior(spawnLocation),
-      // Purely cosmetic: the real "minecraft:become_cartographer" vanilla
-      // event, forced without a job site block, so he permanently wears
-      // the cartographer's robe/badge look 
-      //  - this event's component groups set his profession
-      // variant; the "work_schedule"/"make_and_receive_love" groups it also
-      // adds are harmless here: he's the only villager around to breed
-      // with, and there's no night to sleep through since time is locked
-      // at noon - and stationaryBehavior's teleport-back still overrides
-      // any wandering it might otherwise cause anyway).
+      // Cosmetic only: forces the real "become_cartographer" vanilla event
+      // so he wears the cartographer look without needing a job site block.
       triggerEventsOnAttach("minecraft:become_cartographer"),
       openShopOnInteractOrHit({
         shopSystem: manager.getShopSystem(),

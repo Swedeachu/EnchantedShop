@@ -9,17 +9,10 @@ export const LOADING_SCENE_ID = "loading";
 
 /**
  * The default scene every player is placed into the instant they first
- * spawn (see SceneSystem.setDefaultSceneId in SystemManager) - a single
- * shared instance, like every Scene (see Scene.ts's doc comment), so any
- * number of players loading in at once all pass through this same one.
- *
- * Every other system (PlayerSystem, CurrencySystem, KitsSystem,
- * DeliverySystem) is registered *before* SceneSystem in SystemManager, so
- * by the time this scene's onPlayerEnter runs, every one of them has
- * already hydrated its component for this player from dynamic properties -
- * there's nothing left to actually wait on. This scene's job is simply to
- * be the well-defined "your data is ready" checkpoint before handing the
- * player off to HubScene, logged cleanly either way.
+ * spawn - a single shared instance, like every Scene. Every other system
+ * is registered before SceneSystem, so by the time onPlayerEnter runs here
+ * their data is already hydrated; this scene is just the well-defined
+ * "your data is ready" checkpoint before handing off to HubScene.
  */
 export class LoadingScene extends Scene {
   private readonly logger = new Logger("LoadingScene");

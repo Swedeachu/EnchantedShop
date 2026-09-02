@@ -6,18 +6,12 @@ import type { Scene } from "./Scene";
 
 /**
  * Registry + per-player switchboard for Scenes. Each Scene subclass has
- * exactly one shared instance (registered once, in SystemManager's
- * constructor - see Scene.ts's doc comment) - what this class tracks
- * per-player is only *which* of those shared instances each player is
- * currently assigned to, not a separate scene per player. Any number of
- * players can be assigned to the same scene at once (that's the point of
- * HubScene being a shared lobby, not an instance-per-player one).
- * `onInit()` calls every registered scene's own `init()` once (after the
- * world has loaded), and a scene set as the "default" via
- * `setDefaultSceneId()` is where every player lands the moment they first
- * spawn - LoadingScene, in this project - with scenes free to move a
- * player elsewhere (LoadingScene moves them into HubScene once their data
- * is ready).
+ * exactly one shared instance (see Scene.ts) - this class only tracks
+ * *which* shared instance each player is currently assigned to, so any
+ * number of players can share the same scene at once. `onInit()` calls
+ * every registered scene's `init()` once; the scene marked "default" via
+ * `setDefaultSceneId()` is where every player lands on first spawn, free
+ * to move themselves elsewhere from there (e.g. LoadingScene -> HubScene).
  */
 export class SceneSystem extends GameSystem {
   private readonly logger = new Logger("SceneSystem");

@@ -8,7 +8,6 @@ import { CurrencySystem } from "../systems/CurrencySystem";
 import { KitsSystem } from "../systems/KitsSystem";
 import { DeliverySystem } from "../systems/DeliverySystem";
 import { ShopSystem } from "../systems/ShopSystem";
-import { createShopManNpc } from "../entities/ShopManNpc";
 import { LoadingScene, LOADING_SCENE_ID } from "../scenes/LoadingScene";
 import { HubScene } from "../scenes/HubScene";
 
@@ -42,16 +41,11 @@ export class SystemManager {
   private readonly sceneSystem: SceneSystem;
 
   private constructor() {
-    // Registration order matters: it is both init order and event-dispatch
-    // order. PlayerSystem must come before anything that reads
-    // getGamePlayer() inside its own onPlayerSpawn; ShopSystem/KitsSystem
-    // must exist before EntitySystem's NPCs (e.g. Mister ShopMan), which
-    // read from both. SceneSystem is registered LAST on purpose: its
-    // onPlayerSpawn is what places a freshly-joined player into
-    // LoadingScene, and that has to happen only after every other system
-    // above has already hydrated that player's data for this session -
-    // otherwise LoadingScene would hand them off to HubScene before there
-    // was anything to actually load.
+    // Registration order = init order = event-dispatch order. PlayerSystem
+    // goes first (everything else reads getGamePlayer() from it), SceneSystem
+    // goes last (its onPlayerSpawn is what places a joining player into
+    // LoadingScene, which should only happen once every system above has
+    // already hydrated that player's data).
     this.playerSystem = this.register(new PlayerSystem(this));
     this.currencySystem = this.register(new CurrencySystem(this, this.playerSystem));
     this.kitsSystem = this.register(new KitsSystem(this, this.playerSystem));
@@ -60,15 +54,13 @@ export class SystemManager {
     this.entitySystem = this.register(new EntitySystem(this));
     this.sceneSystem = this.register(new SceneSystem(this));
 
-    // NPCs are just data + behaviors handed to EntitySystem - see
-    // src/entities/ShopManNpc.ts. Registered here (not inside EntitySystem
-    // itself) so adding a new NPC never means touching EntitySystem.
-    this.entitySystem.registerNpc(createShopManNpc(this)); // TODO: move this to be created inside Hub scene init
-
-    const loadingScene = new LoadingScene(this);
-    const hubScene = new HubScene(this);
-    this.sceneSystem.registerScene(loadingScene);
-    this.sceneSystem.registerScene(hubScene);
+    // Scenes own the gameplay content that lives in them (e.g. HubScene
+    // owns Mister ShopMan) - SystemManager only registers the scenes
+    // themselves, generically, the same way it registers systems above.
+    // Later on maybe with reflection or some static factory pattern the 
+    // derived scene files themselves can defer their registration automatically.
+    this.sceneSystem.registerScene(new LoadingScene(this));
+    this.sceneSystem.registerScene(new HubScene(this));
     this.sceneSystem.setDefaultSceneId(LOADING_SCENE_ID);
   }
 

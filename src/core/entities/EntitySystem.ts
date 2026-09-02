@@ -6,11 +6,12 @@ import { retryOnUnloadedChunk } from "../util/ChunkRetry";
 import type { NpcDefinition, SpawnedNpc } from "./NpcTypes";
 
 /**
- * Generic registry + spawner for scripted NPCs (Mister ShopMan today,
- * anything else later): each NpcDefinition says where/what to spawn, and a
- * list of NpcBehaviors get interact/hit/tick fanned out to them. Adding a
- * new NPC means describing one (see src/entities/ShopManNpc.ts) and calling
- * registerNpc() - not writing a new System for it.
+ * Generic registry + spawner for scripted NPCs. Knows nothing about any
+ * specific NPC - each NpcDefinition says where/what to spawn, and a list
+ * of NpcBehaviors get interact/hit/tick fanned out to them. Whoever owns
+ * an NPC conceptually (e.g. HubScene owns Mister ShopMan) builds its
+ * definition and calls registerNpc() - adding a new NPC never means
+ * touching this file.
  */
 export class EntitySystem extends GameSystem {
   private readonly logger = new Logger("EntitySystem");
@@ -23,19 +24,13 @@ export class EntitySystem extends GameSystem {
   }
 
   /**
-   * Two things vanilla would otherwise do on its own, that we need to
-   * intercept before they happen rather than react to after the fact:
-   *
-   *  - Right-clicking any villager opens vanilla's trade UI. Cancelling
-   *    playerInteractWithEntity's *before* event stops that outright, and
-   *    we run our own onInteract behaviors right after (deferred one tick
-   *    via system.run(), since before-event callbacks run in
-   *    restricted-execution mode and can't open UI forms directly).
-   *  - Damage on an invincible NPC needs to never register at all - not
-   *    just be reduced to 0 HP lost - so it can't flash/react. Cancelling
-   *    entityHurt's *before* event stops it before any of that happens -
-   *    this is the only layer doing that (NPCs are plain vanilla entity
-   *    types, so there's no entity-definition component to lean on too).
+   * Two things vanilla does on its own that we intercept before they
+   * happen: right-clicking any villager opens vanilla's trade UI (cancel
+   * the *before* event, then run our own onInteract behaviors deferred one
+   * tick via system.run(), since before-event callbacks run in restricted
+   * execution and can't open UI forms directly); damage on an invincible
+   * NPC must never register at all, not just be reduced to 0 (cancel
+   * entityHurt's *before* event).
    */
   private subscribeToEvents(): void {
     world.beforeEvents.playerInteractWithEntity.subscribe((event) => {
@@ -64,7 +59,13 @@ export class EntitySystem extends GameSystem {
     });
   }
 
-  /** Register an NPC to be spawned/maintained. Call before onInit() runs (i.e. from SystemManager's constructor). */
+  /**
+   * Register an NPC to be spawned/maintained. Safe to call any time before
+   * the tick loop starts - typically from a Scene's init() (e.g.
+   * HubScene registering Mister ShopMan), which runs after this system's
+   * own onInit(). Either way onTick spawns anything not yet spawned on its
+   * very next pass, so registering "late" just means spawning one tick later.
+   */
   public registerNpc(definition: NpcDefinition): void {
     if (this.npcs.some((npc) => npc.definition.tag === definition.tag)) {
       throw new Error(`NPC tag "${definition.tag}" is already registered.`);
@@ -117,18 +118,11 @@ export class EntitySystem extends GameSystem {
   }
 
   /**
-   * NPCs are treated like statues, not saved state: never "found again"
-   * from whatever the world file happens to have saved (stale data,
-   * duplicates from an old bug, whatever) - every time this runs, any
-   * stray entity already wearing this NPC's tag is removed first, and a
-   * brand new one is spawned fresh. That makes "what's actually standing
-   * there" fully owned by this script every single boot, with no
-   * ambiguity about whether a found entity is really "the same" NPC.
-   *
-   * Safe to call repeatedly (idempotent while a spawn is in flight) -
-   * `spawnInFlight` stops onInit's call and the very next onTick's call
-   * (before the first attempt's retry loop has resolved) from both
-   * kicking off their own spawn.
+   * NPCs are statues, not saved state: never "found again" from whatever
+   * the world file happens to have saved - any stray entity already
+   * wearing this NPC's tag is removed first, then a fresh one is spawned.
+   * `spawnInFlight` makes repeat calls idempotent while a spawn attempt's
+   * retry loop is still in progress.
    */
   private ensureSpawned(npc: SpawnedNpc): void {
     if (this.spawnInFlight.has(npc.definition.id)) {

@@ -5,12 +5,15 @@ import { Logger } from "../core/Logger";
 import { GameConfig } from "../config/GameConfig";
 import { ensureHubPlatformBuilt } from "../world/SpawnPlatform";
 import { lockTimeAtNoon } from "../world/WorldSettings";
+import { createShopManNpc } from "../entities/ShopManNpc";
 
 export const HUB_SCENE_ID = "hub";
 
 /**
  * The PvP lobby itself - a single shared instance the players exist in.
- * Mister Shopman is spawned in here on init()
+ * Owns Mister ShopMan: builds his definition and registers him with
+ * EntitySystem in init(), so EntitySystem stays generic and nothing
+ * outside the Hub needs to know he exists.
  */
 export class HubScene extends Scene {
   private readonly logger = new Logger("HubScene");
@@ -29,6 +32,7 @@ export class HubScene extends Scene {
 
     this.scoreboardObjective = this.setUpScoreboard();
     this.disableDamageInHub();
+    this.manager.getEntitySystem().registerNpc(createShopManNpc(this.manager));
 
     this.logger.info("Hub ready.");
   }

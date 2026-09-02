@@ -15,18 +15,12 @@ export interface DeliveryOutcome {
 }
 
 /**
- * The single place items ever enter a player's inventory. Guarantees the
- * "never dropped on the ground" rule: whatever doesn't fit is
- * queued on the player and retried whenever they have space, instead of
- * spilling onto the ground where it could be stolen.
- *
- * The retry loop itself runs off onTick (every GameConfig.delivery.retryIntervalTicks
- * ticks, decoupled from CurrencySystem's much slower autosaveIntervalSeconds -
- * a full inventory should clear itself out almost immediately once space
- * frees up, not wait up to a minute) - and pendingPlayerIds tracks which
- * online players currently have anything queued at all, so a server with
- * nobody's inventory full pays only a single Set.size check per tick
- * instead of looping every online player's component.
+ * The single place items ever enter a player's inventory. Whatever doesn't
+ * fit is queued and retried once space frees up - never dropped on the
+ * ground. Retries run off onTick every GameConfig.delivery.retryIntervalTicks
+ * ticks (much faster than CurrencySystem's autosave, since a full inventory
+ * should clear almost instantly); pendingPlayerIds tracks who actually has
+ * something queued, so an empty queue costs one Set.size check per tick.
  */
 export class DeliverySystem extends GameSystem {
   private readonly logger = new Logger("DeliverySystem");
