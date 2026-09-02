@@ -32,7 +32,6 @@ const ROTATING_SHOP_ICON = "textures/items/clock_item";
 const CLOSE_ICON = "textures/blocks/barrier";
 // The vanilla UI atlas icon used for every "Back"/"Previous" button.
 const BACK_ICON = "textures/ui/arrow_left";
-const CANCEL_ICON = "textures/blocks/barrier";
 
 enum ShopKind {
   Static,
@@ -153,14 +152,12 @@ function computeMaxQuantity(ctx: ShopUIContext, playerId: string, kind: ShopKind
 /** Everything the purchase screens need about the entry, computed once up front. */
 interface PurchaseContext {
   readonly name: string;
-  readonly iconPath: string;
   readonly contentsLines: readonly string[];
 }
 
 function buildPurchaseContext(entry: ShopEntry): PurchaseContext {
   return {
     name: entry.kind === ShopEntryKind.Kit ? entry.kit.displayName : entry.displayName,
-    iconPath: getShopEntryIconPath(entry),
     contentsLines: entry.kind === ShopEntryKind.Kit ? formatKitContentsLines(entry.kit) : []
   };
 }
@@ -180,10 +177,9 @@ async function openPurchaseMenu(player: Player, ctx: ShopUIContext, kind: ShopKi
   const purchase = buildPurchaseContext(entry);
 
   // A slider needs a max strictly greater than its min, so it can't
-  // represent "the max the player can afford is exactly 1" - the slider
-  // max must still track affordability exactly (never a stand-in value
-  // like 64), so when it's 1 this skips the slider for a plain
-  // confirmation instead of showing a misleading 1-2 range.
+  // represent "the max affordable is exactly 1" - this skips just the
+  // slider control for that case, not the CustomForm style itself (see
+  // confirmSingleQuantityPurchase).
   if (maxQuantity === 1) {
     await confirmSingleQuantityPurchase(player, ctx, kind, entry, purchase);
     return;
@@ -255,6 +251,13 @@ function describeQuantitySelection(entry: ShopEntry, purchase: PurchaseContext, 
   return lines.join("\n");
 }
 
+/**
+ * Same CustomForm shape as openQuantitySliderMenu (contents label, a label
+ * describing quantity/cost, plain-text Purchase/Cancel buttons) minus the
+ * slider itself - quantity is fixed at 1, so there's nothing to drag.
+ * Keeps the whole shop on one consistent data-driven style regardless of
+ * how much the player can afford.
+ */
 async function confirmSingleQuantityPurchase(
   player: Player,
   ctx: ShopUIContext,
@@ -262,19 +265,22 @@ async function confirmSingleQuantityPurchase(
   entry: ShopEntry,
   purchase: PurchaseContext
 ): Promise<void> {
-  const bodyLines = [`§2Are you sure you want to buy §3${purchase.name}§2 for §3${formatCurrency(entry.price)}§2?`];
-  if (purchase.contentsLines.length > 0) {
-    bodyLines.push("", ...purchase.contentsLines);
-  }
+  let confirmed = false;
 
-  const form = new ActionFormData()
-    .title(purchase.name)
-    .body(bodyLines.join("\n"))
-    .button(`§2Buy ${purchase.name}`, purchase.iconPath)
-    .button("§4Cancel", CANCEL_ICON);
+  const form = new CustomForm(player, purchase.name)
+    .label(new ObservableString(purchase.contentsLines.length > 0 ? purchase.contentsLines.join("\n") : ""))
+    .label(new ObservableString(describeQuantitySelection(entry, purchase, 1)))
+    .button("Purchase", () => {
+      confirmed = true;
+      form.close();
+    })
+    .button("Cancel", () => {
+      form.close();
+    });
 
-  const response = await form.show(player);
-  if (response.canceled || response.selection !== 0) {
+  await form.show();
+
+  if (!confirmed) {
     return;
   }
 

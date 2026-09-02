@@ -80,8 +80,10 @@ export class DeliverySystem extends GameSystem {
     for (const playerId of [...this.pendingPlayerIds]) {
       const gamePlayer = this.playerSystem.getGamePlayer(playerId);
       const component = gamePlayer?.components.get(PendingDeliveryComponentKey);
-      if (!gamePlayer || !component || component.isEmpty()) {
-        // Offline, no component yet, or already drained some other way -
+      if (!gamePlayer || !gamePlayer.player.isValid || !component || component.isEmpty()) {
+        // Offline, disconnecting (the entity can go invalid a moment before
+        // playerLeave actually fires and cleans this up via onPlayerLeave
+        // below), no component yet, or already drained some other way -
         // nothing to retry against right now.
         this.pendingPlayerIds.delete(playerId);
         continue;
@@ -156,6 +158,12 @@ export class DeliverySystem extends GameSystem {
   }
 
   private getContainer(player: Player): Container | undefined {
+    // Belt-and-suspenders alongside the isValid check in onTick above:
+    // getComponent() throws InvalidEntityError (not just returns undefined)
+    // on an invalid entity, and this is also called directly from deliver().
+    if (!player.isValid) {
+      return undefined;
+    }
     const inventory = player.getComponent(EntityComponentTypes.Inventory) as EntityInventoryComponent | undefined;
     return inventory?.container;
   }
